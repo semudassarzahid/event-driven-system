@@ -1,0 +1,64 @@
+// index.html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.IO Example</title>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
+  <script src="client.js"></script>
+  <script>
+    // Example usage
+    sendRequest("exampleModule", "exampleFeature", { key: "value" });
+  </script>
+</body>
+</html>
+
+// client.js
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000'); // Change the URL to your server's URL
+
+function sendRequest(module, feature, data) {
+  const token = generateUniqueToken();
+
+  const listener = (response) => {
+    handleResponse(response);
+
+    // Stop listening for this token
+    socket.off(token);
+  };
+
+  // Register the listener for the token
+  socket.on(token, listener);
+
+  // Send the request to the server
+  const request = {
+    token,
+    module,
+    feature,
+    data,
+  };
+
+  socket.emit('request', request);
+
+  // Set a timeout to handle the case where no response is received within the specified time
+  setTimeout(() => {
+    // Check if the listener is still registered
+    if (socket.hasListeners(token)) {
+      // Remove the listener and handle the timeout error
+      socket.off(token);
+      handleTimeoutError(token);
+    }
+  }, requestTimeout);
+}
+
+function handleResponse(response) {
+  console.log('Received response:', response);
+  // Handle the response as needed
+}
+
+function handleTimeoutError(token) {
+  console.log(`Timeout reached for token ${token}. No response received.`);
+  // Handle the timeout error as needed
+}
